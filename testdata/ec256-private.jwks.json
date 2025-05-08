@@ -1,0 +1,14 @@
+{
+	"issuer": "https://example.com",
+	"keys":[
+	{
+		"alg":"ES256",
+		"use":"sig",
+		"kid":"947a627d87183f94388b39d71db6601679995a1f",
+		"crv": "P-256",
+		"d": "7DZx2d5QfjX4s8xCBGeKutrnsk66qpY5bDo4maldyQk",
+		"kty": "EC",
+		"x": "a8qPVdjQJm76VvhFMDux9d017VWaSk9VW5x6-t8_RGU",
+		"y": "X4-JrJtipUQJVxqT784zNJgH5n15VtJWBtTxl_Bku3k"
+	}
+]}
