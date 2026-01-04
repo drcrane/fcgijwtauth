@@ -93,14 +93,22 @@ picojson::object ec_to_jwk(EC_KEY* ec_key, bool include_private = false) {
 	return jwk;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	try {
 		EC_KEY* ec_key = load_ec_private_key("testdata/ec256-private.pem");
 		picojson::object jwk = ec_to_jwk(ec_key, true);
 		EC_KEY_free(ec_key);
+		jwk["alg"] = picojson::value("ES256");
+		jwk["use"] = picojson::value("sig");
+		jwk["kid"] = picojson::value(argv[2]);
 
-		picojson::value jwk_val(jwk);
-		std::cout << jwk_val.serialize(true) << std::endl;
+		picojson::array keys;
+		keys.push_back(picojson::value(jwk));
+		picojson::object jwks;
+		jwks["issuer"] = picojson::value(argv[1]);
+		jwks["keys"] = picojson::value(keys);
+		picojson::value jwks_val(jwks);
+		std::cout << jwks_val.serialize(true) << std::endl;
 	} catch (const std::exception& e) {
 		std::cerr << "Error: " << e.what() << "\n";
 	}

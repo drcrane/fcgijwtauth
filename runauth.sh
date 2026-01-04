@@ -6,6 +6,12 @@ if [ ! -d build ] ; then
 	cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -Bbuild .
 fi
 ninja -C build/
+if [ ! -d conf ] ; then
+	mkdir conf
+fi
+if [ ! -f conf/e42_uk.jwks.json ] ; then
+	build/jwks_creator https://testingid.e42.uk 947a627d87183f94388b39d71db6601679995a1f >> conf/e42_uk.jwks.json
+fi
 if [ ! -d appbin ] ; then
 	mkdir appbin
 fi
