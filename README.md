@@ -39,6 +39,29 @@ Below is a brief configuration fragment from a `server` section in nginx:
 `/var/www/localhost/auth_htdocs` is a location where some resources
 can be kept (I am not sure how useful these are yet).
 
+### Executing
+
+The script `runauth.sh` should be sufficient, ensure it is executing in the
+project root directory and the `doas` tool is available and configured
+on the system.
+
+### Accessing the `/private` URL
+
+The private URL should present itself as "401 Unauthorized" when there is no
+appropriate `auth` cookie set. Verify by visiting the URL. If this is the case
+access can be granted by setting a cookie to a valid JWT. Assuming the
+configuration is similar to the above the following steps should allow access:
+
+* Generate a JWT with the `jwt_creator` tool:
+
+    build/jwt_creator --name "Example User" --email user@example.com
+
+* Visit `/authmain/auth_cookies.html`
+* Enter the generated JWT into the **Cookie Value:** box and click **Set
+  Cookie** (the other values on this form have appropriate defaults)
+* Now that the cookie is set it should be possible to access pages below
+  the `/private` URL.
+
 ### picojson
 
 `picojson` puts too many escape characters in... there is an open pull request
