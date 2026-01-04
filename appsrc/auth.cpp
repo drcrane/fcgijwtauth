@@ -6,6 +6,8 @@
 #include <optional>
 #include <vector>
 #include <chrono>
+#include <sstream>
+#include <iomanip>
 #include "../src/HTTPUtils.hpp"
 #include "jwt-cpp/jwt.h"
 #include "jwt-cpp/traits/kazuho-picojson/traits.h"
@@ -25,6 +27,14 @@ std::string set_to_json(const std::set<std::string>& string_set) {
 	}
 	
 	return picojson::value(json_array).serialize();
+}
+
+std::string time_point_to_string(const std::chrono::system_clock::time_point& tp) {
+	auto time_t = std::chrono::system_clock::to_time_t(tp);
+	std::stringstream ss;
+	//ss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
+	ss << std::put_time(std::gmtime(&time_t), "%Y-%m-%d %H:%M:%S");
+	return ss.str();
 }
 
 int verify_jwks_authentication(char * cookies_str, char * auth) {
@@ -50,7 +60,7 @@ int verify_jwks_authentication(char * cookies_str, char * auth) {
 		jwt::decoded_jwt<jwt::traits::kazuho_picojson> jwt = jwt::decode(jwt_str);
 		std::string issuer = jwt.get_issuer();
 		std::string algorithm = jwt.get_algorithm();
-		std::string aud = set_to_json(jwt.get_audience());
+		std::string aud = jwt.has_payload_claim("aud") ? set_to_json(jwt.get_audience()) : "<no aud>";
 		fprintf(stderr, "iss: %s\n"
 			"alg: %s\n"
 			"aud: %s\n"
@@ -66,6 +76,7 @@ int verify_jwks_authentication(char * cookies_str, char * auth) {
 		verifier.verify(jwt);
 		// Signature Valid but the token may be out of date
 		std::chrono::time_point issue_time_date = jwt.get_issued_at();
+		fprintf(stdout, "issued: %s\n", time_point_to_string(issue_time_date).c_str());
 		return 0;
 	} catch (std::runtime_error & re) {
 		fprintf(stderr, "[Auth] Something wrong with jwt (%s)\n", jwt_str.c_str());
