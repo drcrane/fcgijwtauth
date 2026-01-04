@@ -16,6 +16,17 @@ using json_traits = jwt::traits::kazuho_picojson;
 /* map contains a map of issuers and stores for that issuer */
 std::map<std::string, JWKSVerifierStore> g_store_map{};
 
+std::string set_to_json(const std::set<std::string>& string_set) {
+	picojson::array json_array;
+	json_array.reserve(string_set.size());
+	
+	for (const auto& str : string_set) {
+		json_array.emplace_back(str);
+	}
+	
+	return picojson::value(json_array).serialize();
+}
+
 int verify_jwks_authentication(char * cookies_str, char * auth) {
 	cookie_t * cookies;
 	std::string jwt_str{};
@@ -39,11 +50,12 @@ int verify_jwks_authentication(char * cookies_str, char * auth) {
 		jwt::decoded_jwt<jwt::traits::kazuho_picojson> jwt = jwt::decode(jwt_str);
 		std::string issuer = jwt.get_issuer();
 		std::string algorithm = jwt.get_algorithm();
-		//std::string aud = jwt.get_audience();
+		std::string aud = set_to_json(jwt.get_audience());
 		fprintf(stderr, "iss: %s\n"
+			"alg: %s\n"
 			"aud: %s\n"
 			/*"alg: %s\n"*/,
-			issuer.c_str(), algorithm.c_str()/*, aud.c_str()*/);
+			issuer.c_str(), algorithm.c_str(), aud.c_str());
 		//g_store_map.count(issuer);
 		std::map<std::string, JWKSVerifierStore>::iterator element = g_store_map.find(issuer);
 		if (element == g_store_map.end()) {
@@ -133,8 +145,8 @@ int main(int argc, char *argv[]) {
 	} while (1);
 	free(req);
 	req = NULL;
+	return EXIT_SUCCESS;
 error:
-	rc = 127;
-	return rc;
+	return EXIT_FAILURE;
 }
 

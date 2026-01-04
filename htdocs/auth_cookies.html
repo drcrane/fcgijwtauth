@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+  <title>Set and Remove Cookies</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input[type="text"], input[type="number"] {
+      width: 300px;
+      padding: 5px;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+    }
+    #cookieDisplay {
+      margin-top: 30px;
+      background: #f4f4f4;
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    .cookie-item {
+      margin: 5px 0;
+    }
+    .cookie-item button {
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Set a Cookie</h1>
+
+  <form id="cookieForm">
+    <label>
+      Cookie Name:
+      <input type="text" id="cookieName" required>
+    </label>
+    <label>
+      Cookie Value:
+      <input type="text" id="cookieValue" required>
+    </label>
+    <label>
+      Expiry (in days):
+      <input type="number" id="cookieExpiry" min="1" required>
+    </label>
+    <label>
+      Path:
+      <input type="text" id="cookiePath" placeholder="/" value="/">
+    </label>
+    <button type="submit">Set Cookie</button>
+  </form>
+
+  <div id="cookieDisplay">
+    <strong>Current Cookies:</strong>
+    <div id="cookieList"></div>
+  </div>
+
+  <script>
+    document.getElementById('cookieForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const name = document.getElementById('cookieName').value;
+      const value = document.getElementById('cookieValue').value;
+      const days = parseInt(document.getElementById('cookieExpiry').value, 10);
+      const path = document.getElementById('cookiePath').value || "/";
+
+      const date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      const expires = "expires=" + date.toUTCString();
+
+      document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; ${expires}; path=${path}; SameSite=None; Secure`;
+
+      displayCookies();
+    });
+
+    function deleteCookie(name, path = "/") {
+	  var cookie_str = `${encodeURIComponent(name)}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}; SameSite=None; Secure`;
+	  console.log(cookie_str);
+      document.cookie = cookie_str;
+      displayCookies();
+    }
+
+    function displayCookies() {
+      const cookieList = document.getElementById('cookieList');
+      cookieList.innerHTML = "";
+
+      const cookies = document.cookie.split("; ");
+      if (!cookies[0]) {
+        cookieList.textContent = "No cookies set.";
+        return;
+      }
+
+      cookies.forEach(cookie => {
+        const [name, value] = cookie.split("=");
+        const div = document.createElement("div");
+        div.className = "cookie-item";
+        div.textContent = `${decodeURIComponent(name)} = ${decodeURIComponent(value)}`;
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.onclick = () => deleteCookie(name);
+
+        div.appendChild(delBtn);
+        cookieList.appendChild(div);
+      });
+    }
+
+    displayCookies();
+  </script>
+
+</body>
+</html>

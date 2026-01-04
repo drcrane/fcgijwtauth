@@ -1,4 +1,4 @@
-# Simple Cookie and Authorisation for Nginx
+# Simple Cookie and Authorisation for nginx
 
 This application uses FastCGI to verify JWTs that are presented to the server
 via a cookie or in an `Authorization` header.
@@ -23,20 +23,20 @@ Below is a brief configuration fragment from a `server` section in nginx:
     
     location /authmain {
         client_max_body_size 1M;
-        alias /var/www/localhost/htdocs/auth_htdocs;
+        alias /var/www/localhost/auth_htdocs;
         try_files $uri @authmain;
     }
     
     location @authmain {
         include fastcgi_params;
-        fastcgi_split_path_info "^(/auth)(/?.+)$";
+        fastcgi_split_path_info "^(/authmain/)(.+)$";
         fastcgi_param PATH_INFO $fastcgi_path_info;
         fastcgi_param SCRIPT_NAME $fastcgi_script_name;
         fastcgi_param SCRIPT_FILENAME $fastcgi_script_name;
         fastcgi_pass unix:/run/spawn-fcgi/authmain.sock-1;
     }
 
-`/var/www/localhost/htdocs/auth_htdocs` is a location where some resources
+`/var/www/localhost/auth_htdocs` is a location where some resources
 can be kept (I am not sure how useful these are yet).
 
 ### picojson
@@ -52,3 +52,4 @@ section.
 * `https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration`
 * `https://accounts.google.com/.well-known/openid-configuration`
 * `https://api.login.yahoo.com/.well-known/openid-configuration`
+* `https://testingid.e42.uk/.well-known/openid-configuration`

@@ -30,11 +30,17 @@ target_link_libraries(JWKSVerifier PRIVATE ${LIBFCGI_LIBRARIES} ${LIBCURL_LIBRAR
 add_executable(${PROJECT_NAME}main appsrc/auth.cpp)
 target_link_libraries(${PROJECT_NAME}main PRIVATE ${LIBFCGI_LIBRARIES} ${LIBCURL_LIBRARIES} ${LIBSQLITE3_LIBRARIES} jwt-cpp JWKSVerifier)
 
+add_executable(${PROJECT_NAME}mainnospawn appsrc/authnospawn.cpp)
+target_link_libraries(${PROJECT_NAME}mainnospawn PRIVATE ${LIBFCGI_LIBRARIES} ${LIBCURL_LIBRARIES} ${LIBSQLITE3_LIBRARIES} jwt-cpp JWKSVerifier)
+
 add_executable(jwks_creator appsrc/jwks_creator.cpp)
 target_link_libraries(jwks_creator PRIVATE ${LIBOPENSSL_LIBRARIES} jwt-cpp)
 
 add_executable(jwt_creator appsrc/jwt_creator.cpp)
 target_link_libraries(jwt_creator PRIVATE ${LIBOPENSSL_LIBRARIES} jwt-cpp JWKSVerifier)
+
+add_executable(simplestream appsrc/simplestream.c)
+target_link_libraries(simplestream PRIVATE ${LIBFCGI_LIBRARIES})
 
 add_subdirectory(testsrc)
 

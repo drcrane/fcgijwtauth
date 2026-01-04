@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <stdio.h>
 #include <openssl/rand.h>
 #include "jwt-cpp/traits/kazuho-picojson/traits.h"
@@ -10,6 +11,8 @@ using json_traits = jwt::traits::kazuho_picojson;
 int main(int argc, char *argv[]) {
 	char * name = NULL;
 	char * email = NULL;
+	char * issuer = (char *)"https://testingid.e42.uk";
+	char * kid = (char *)"947a627d87183f94388b39d71db6601679995a1f";
 	for (int i = 0; i < argc; ++i) {
 		if (strcmp(argv[i], "--name") == 0) {
 			++i;
@@ -19,9 +22,27 @@ int main(int argc, char *argv[]) {
 			++i;
 			email = argv[i];
 		}
+		if (strcmp(argv[i], "--issuer") == 0) {
+			++i;
+			issuer = argv[i];
+		}
+		if (strcmp(argv[i], "--kid") == 0) {
+			++i;
+			kid = argv[i];
+		}
 	}
 
-	const char * kid = "947a627d87183f94388b39d71db6601679995a1f";
+	if (email == NULL) {
+		fprintf(stderr, "please supply --email argument\n");
+		return EXIT_FAILURE;
+	}
+	if (name == NULL) {
+		fprintf(stderr, "please supply --name argument\n");
+		return EXIT_FAILURE;
+	}
+
+	std::cerr << "issuer: " << issuer << "\n";
+	std::cerr << "kid: " << kid << "\n";
 
 	JWKSVerifierStore store = JWKSVerifierStore("./conf/e42_uk.jwks.json");
 	json_traits::object_type jwk = store.get_jwk(kid);
@@ -35,7 +56,7 @@ int main(int argc, char *argv[]) {
 	auto pem_priv_key = JWKSVerifierStore::create_pem_ec_key(x, y, d);
 
 	std::cerr << pem_priv_key << "\n";
-	
+
 	unsigned char nonce[24];
 	RAND_bytes(nonce, sizeof(nonce));
 	std::string jti = jwt::base::encode<jwt::alphabet::base64url>(std::string{reinterpret_cast<const char*>(nonce), sizeof(nonce)});
@@ -44,7 +65,7 @@ int main(int argc, char *argv[]) {
 							.set_type("JWT")
 							.set_key_id(kid)
 							.set_id(jti)
-							.set_issuer("https://testingid.e42.uk")
+							.set_issuer(issuer)
 							.set_subject(email)
 							.set_issued_at(std::chrono::system_clock::now())
 							.set_expires_at(std::chrono::system_clock::now() + std::chrono::hours{24 * 28})
