@@ -11,25 +11,25 @@ via a cookie or in an `Authorization` header.
 
 See also `runauth.sh`.
 
-### Configuring Nginx
+### Configuring `nginx`
 
 Below is a brief configuration fragment from a `server` section in nginx:
 
     location /private {
         alias /var/www/localhost/private_htdocs;
-        auth_request /authmain;
+        auth_request /auth;
         autoindex on;
     }
     
-    location /authmain {
+    location /auth {
         client_max_body_size 1M;
         alias /var/www/localhost/auth_htdocs;
-        try_files $uri @authmain;
+        try_files $uri @auth;
     }
     
-    location @authmain {
+    location @auth {
         include fastcgi_params;
-        fastcgi_split_path_info "^(/authmain/)(.+)$";
+        fastcgi_split_path_info "^(/auth)/(.+)$";
         fastcgi_param PATH_INFO $fastcgi_path_info;
         fastcgi_param SCRIPT_NAME $fastcgi_script_name;
         fastcgi_param SCRIPT_FILENAME $fastcgi_script_name;
@@ -76,3 +76,4 @@ section.
 * `https://accounts.google.com/.well-known/openid-configuration`
 * `https://api.login.yahoo.com/.well-known/openid-configuration`
 * `https://testingid.e42.uk/.well-known/openid-configuration`
+

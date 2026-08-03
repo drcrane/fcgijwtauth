@@ -1,0 +1,102 @@
+#include <map>
+#include <optional>
+#include <vector>
+#include <chrono>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include "../src/HTTPUtils.hpp"
+#include "jwt-cpp/jwt.h"
+#include "jwt-cpp/traits/kazuho-picojson/traits.h"
+#include "../src/JWKSVerifierStore.hpp"
+#include "application.hpp"
+#include "simpletemplate.hpp"
+#include "appspecific.h"
+
+std::string set_to_json(const std::set<std::string> & string_set) {
+	picojson::array json_array;
+	json_array.reserve(string_set.size());
+	for (const auto& str : string_set) {
+		json_array.emplace_back(str);
+	}
+	return picojson::value(json_array).serialize();
+}
+
+std::string time_point_to_string(const std::chrono::system_clock::time_point & tp) {
+	auto time_t = std::chrono::system_clock::to_time_t(tp);
+	std::stringstream ss;
+	//ss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
+	ss << std::put_time(std::gmtime(&time_t), "%Y-%m-%d %H:%M:%S");
+	return ss.str();
+}
+
+int verify_jwks_authentication_jwt(std::map<std::string, JWKSVerifierStore> & store_map, std::string & jwt_str) {
+	try {
+		jwt::decoded_jwt<jwt::traits::kazuho_picojson> jwt = jwt::decode(jwt_str);
+		std::string typ = jwt.get_type();
+		std::string algorithm = jwt.get_algorithm();
+		std::string key_id = jwt.get_key_id();
+		fprintf(stderr, "typ: %s\n"
+				"alg: %s\n"
+				"kid: %s\n",
+				typ.c_str(), algorithm.c_str(), key_id.c_str());
+		std::string issuer = jwt.get_issuer();
+		std::string aud = jwt.has_payload_claim("aud") ? set_to_json(jwt.get_audience()) : "<no aud>";
+		fprintf(stderr, "iss: %s\n"
+			"aud: %s\n",
+			issuer.c_str(), aud.c_str());
+		//g_store_map.count(issuer);
+		std::map<std::string, JWKSVerifierStore>::iterator element = store_map.find(issuer);
+		if (element == store_map.end()) {
+			return 2;
+		}
+		// exception will be thrown here if no verifier is found
+		const JWKSVerifierStore::Verifier & verifier = element->second.get_verifier(jwt.get_key_id());
+		verifier.verify(jwt);
+		// Signature Valid but the token may be out of date
+		std::chrono::time_point issue_time_date = jwt.get_issued_at();
+		fprintf(stdout, "issued: %s\n", time_point_to_string(issue_time_date).c_str());
+		std::chrono::time_point valid_until_date = jwt.get_expires_at();
+		fprintf(stdout, "expires: %s\n", time_point_to_string(valid_until_date).c_str());
+		return 0;
+	} catch (std::runtime_error & re) {
+		fprintf(stderr, "[Auth] Something wrong with jwt (%s)\n", jwt_str.c_str());
+	}
+	return 1;
+}
+
+int verify_jwks_authentication(std::map<std::string, JWKSVerifierStore> & store_map, char * cookies_str, char * auth) {
+	cookie_t * cookies;
+	std::string jwt_str{};
+	cookies = HTTPUtils_parse_cookies(cookies_str);
+	if (cookies != NULL) {
+		for (int i = 0; cookies[i].name != NULL; ++i) {
+			if (strcmp(cookies[i].name, "auth") == 0) {
+				// we found a possible jwt
+				jwt_str = std::string(cookies[i].value);
+			}
+		}
+		free(cookies);
+	}
+	if (jwt_str.empty()) {
+		// TODO: try to get the jwt from the Authentication header.
+		if (auth == NULL || *auth == '\0') {
+			fprintf(stderr, "[Auth] Authorization header not currently parsed\n");
+		}
+	}
+	return verify_jwks_authentication_jwt(store_map, jwt_str);
+}
+
+TemplateEngine application_login_page = TemplateEngine("htdocs/login_template.html");
+
+void application_template_init() {
+	application_login_page.SetVariable("WELCOME_TO_COMPANY_NAME", APPLICATION_WELCOME_TO_COMPANY_NAME);
+	application_login_page.SetVariable("APPLICATION_NAME", APPLICATION_APPLICATION_NAME);
+	application_login_page.SetVariable("PRIVACY_POLICY_URL", APPLICATION_PRIVACY_POLICY_URL);
+	return;
+}
+
+std::string & application_login_page_get_content() {
+	return application_login_page.Render();
+}
+
