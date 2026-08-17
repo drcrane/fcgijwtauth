@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <memory>
 #include "../src/HTTPUtils.hpp"
 #include "jwt-cpp/jwt.h"
 #include "jwt-cpp/traits/kazuho-picojson/traits.h"
@@ -12,6 +13,7 @@
 #include "application.hpp"
 #include "simpletemplate.hpp"
 #include "appspecific.h"
+#include "jwtinterface.hpp"
 
 std::string set_to_json(const std::set<std::string> & string_set) {
 	picojson::array json_array;
@@ -30,7 +32,7 @@ std::string time_point_to_string(const std::chrono::system_clock::time_point & t
 	return ss.str();
 }
 
-int verify_jwks_authentication_jwt(std::map<std::string, JWKSVerifierStore> & store_map, std::string & jwt_str) {
+int verify_jwks_authentication_jwt(JWKSStoreManager & store_man, std::string & jwt_str) {
 	try {
 		jwt::decoded_jwt<jwt::traits::kazuho_picojson> jwt = jwt::decode(jwt_str);
 		std::string typ = jwt.get_type();
@@ -43,16 +45,28 @@ int verify_jwks_authentication_jwt(std::map<std::string, JWKSVerifierStore> & st
 		std::string issuer = jwt.get_issuer();
 		std::string aud = jwt.has_payload_claim("aud") ? set_to_json(jwt.get_audience()) : "<no aud>";
 		fprintf(stderr, "iss: %s\n"
-			"aud: %s\n",
-			issuer.c_str(), aud.c_str());
+				"aud: %s\n",
+				issuer.c_str(), aud.c_str());
 		//g_store_map.count(issuer);
-		std::map<std::string, JWKSVerifierStore>::iterator element = store_map.find(issuer);
-		if (element == store_map.end()) {
+		//std::map<std::string, JWKSVerifierStore>::iterator element = store_map.find("https://login.microsoft.com");
+		//std::map<std::string, JWKSVerifierStore>::iterator element = store_map.find(issuer);
+		//if (element == store_map.end()) {
+		//	fprintf(stderr, "Issuer not found in map, looked for %s\n", issuer.c_str());
+		//	return 2;
+		//}
+		// exception will be thrown here if no verifier is found
+		//const JWKSVerifierStore::Verifier & verifier = element->second.get_verifier(jwt.get_key_id());
+		//verifier.verify(jwt);
+		//JWKSStore::Verifier * verifier = store_man.get_verifier(issuer, jwt.get_key_id());
+		//if (verifier == nullptr) {
+		//	fprintf(stderr, "Could not find verifier for key: %s - %s\n", issuer.c_str(), jwt.get_key_id().c_str());
+		//	return 2;
+		//}
+		bool verify_res = store_man.verify_jwt("microsoft", jwt_str);
+		fprintf(stderr, "Verification attempt result %s\n", verify_res ? "SUCCESS" : "FAILURE");
+		if (verify_res == false) {
 			return 2;
 		}
-		// exception will be thrown here if no verifier is found
-		const JWKSVerifierStore::Verifier & verifier = element->second.get_verifier(jwt.get_key_id());
-		verifier.verify(jwt);
 		// Signature Valid but the token may be out of date
 		std::chrono::time_point issue_time_date = jwt.get_issued_at();
 		fprintf(stdout, "issued: %s\n", time_point_to_string(issue_time_date).c_str());
@@ -65,26 +79,9 @@ int verify_jwks_authentication_jwt(std::map<std::string, JWKSVerifierStore> & st
 	return 1;
 }
 
-int verify_jwks_authentication(std::map<std::string, JWKSVerifierStore> & store_map, char * cookies_str, char * auth) {
-	cookie_t * cookies;
-	std::string jwt_str{};
-	cookies = HTTPUtils_parse_cookies(cookies_str);
-	if (cookies != NULL) {
-		for (int i = 0; cookies[i].name != NULL; ++i) {
-			if (strcmp(cookies[i].name, "auth") == 0) {
-				// we found a possible jwt
-				jwt_str = std::string(cookies[i].value);
-			}
-		}
-		free(cookies);
-	}
-	if (jwt_str.empty()) {
-		// TODO: try to get the jwt from the Authentication header.
-		if (auth == NULL || *auth == '\0') {
-			fprintf(stderr, "[Auth] Authorization header not currently parsed\n");
-		}
-	}
-	return verify_jwks_authentication_jwt(store_map, jwt_str);
+int verify_jwks_authentication(JWKSStoreManager & store_man, char * cookies_str, char * auth_str) {
+	std::string jwt_str = jwtinterface_get_token_from_cookie_or_authorization(cookies_str, auth_str);
+	return verify_jwks_authentication_jwt(store_man, jwt_str);
 }
 
 TemplateEngine application_login_page = TemplateEngine("htdocs/login_template.html");
@@ -99,4 +96,8 @@ void application_template_init() {
 std::string & application_login_page_get_content() {
 	return application_login_page.Render();
 }
+
+/* ************************************************************************* */
+/* Below are the main application functions                                  */
+/* ************************************************************************* */
 

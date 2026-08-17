@@ -12,6 +12,9 @@ class TemplateEngine
 public:
 	using VariableMap = std::unordered_map<std::string, std::string>;
 
+	TemplateEngine() {
+	}
+
 	TemplateEngine(const std::string & filename) {
 		LoadFromFile(filename);
 	}
@@ -44,17 +47,19 @@ public:
 	}
 
 	/// Set a replacement variable.
-	void SetVariable(const std::string& name, const std::string& value)
+	TemplateEngine & SetVariable(const std::string & name, const std::string & value)
 	{
 		m_variables[name] = value;
 		m_dirty = true;
+		return *this;
 	}
 
 	/// Set all variables at once.
-	void SetVariables(const VariableMap& vars)
+	TemplateEngine & SetVariables(const VariableMap & vars)
 	{
 		m_variables = vars;
 		m_dirty = true;
+		return *this;
 	}
 
 	/// Access variables.
@@ -137,3 +142,4 @@ private:
 	VariableMap m_variables;
 	bool m_dirty;
 };
+

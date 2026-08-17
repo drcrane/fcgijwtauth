@@ -10,6 +10,8 @@
 #define FORMDECODER_PRINTFIELDNAMES
 
 #ifdef __cplusplus
+#include <memory>
+
 extern "C" {
 #endif
 
@@ -68,6 +70,26 @@ size_t formdecoder_fieldcount(formdecoder_context * ctx);
 
 #ifdef __cplusplus
 }
+
+struct formdecoder_deleter {
+	void operator()(formdecoder_context* ctx) const noexcept {
+		if (ctx) {
+			formdecoder_dispose(ctx);
+		}
+	}
+};
+
+using formdecoder_context_ptr =
+    std::unique_ptr<formdecoder_context, formdecoder_deleter>;
+
+/*
+ * Use like this:
+formdecoder_context_ptr decode_request() {
+	formdecoder_context* ctx = nullptr;
+	formdecoder_decodefcgirequest(req, &ctx, 1024 * 1024, nullptr);
+	return formdecoder_context_ptr(ctx);
+}
+*/
 #endif
 
 #endif /* FORMDECODER_H */

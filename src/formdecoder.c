@@ -125,6 +125,12 @@ int formdecoder_setfield(formdecoder_context * ctx, char * key, size_t data_len,
 	return res;
 }
 
+/*
+ * Get a field from the formdecoder_context:
+ * return values:
+ * - 0: Key found: data_ptr and data_ptr_len updated to point to the field (not copied, do not modify the data)
+ * - non-zero: Key not found data_ptr and data_ptr_len not modified
+ */
 int formdecoder_getfield(formdecoder_context * ctx, const char * key, size_t * data_len_ptr, char ** data_ptr) {
 	if (ctx->type == FORMDECODER_QUERYSTRING) {
 		char * field_value;

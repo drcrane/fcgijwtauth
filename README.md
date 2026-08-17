@@ -20,13 +20,13 @@ Below is a brief configuration fragment from a `server` section in nginx:
         auth_request /auth;
         autoindex on;
     }
-    
+
     location /auth {
         client_max_body_size 1M;
         alias /var/www/localhost/auth_htdocs;
         try_files $uri @auth;
     }
-    
+
     location @auth {
         include fastcgi_params;
         fastcgi_split_path_info "^(/auth)/(.+)$";
@@ -38,6 +38,21 @@ Below is a brief configuration fragment from a `server` section in nginx:
 
 `/var/www/localhost/auth_htdocs` is a location where some resources
 can be kept (I am not sure how useful these are yet).
+
+### Using a 302 Redirect
+
+    location / {
+        auth_request /auth;
+    
+        error_page 401 = @login;
+        error_page 403 = /403.html;
+    
+        proxy_pass http://backend;
+    }
+
+    location @login {
+        return 302 /login?return=$request_uri;
+    }
 
 ### Executing
 
@@ -62,6 +77,12 @@ configuration is similar to the above the following steps should allow access:
 * Now that the cookie is set it should be possible to access pages below
   the `/private` URL.
 
+### jwt-cpp
+
+This commit was used and seemed to be working.
+
+`b0ea29a58fc852a67d4e896d266880c2c63b0c4c`
+
 ### picojson
 
 `picojson` puts too many escape characters in... there is an open pull request
@@ -73,6 +94,7 @@ section.
 ### OAuth/OpenIDConnect Discovery Documents
 
 * `https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration`
+  - `jwks_uri`: `https://login.microsoftonline.com/common/discovery/v2.0/keys`
 * `https://accounts.google.com/.well-known/openid-configuration`
 * `https://api.login.yahoo.com/.well-known/openid-configuration`
 * `https://testingid.e42.uk/.well-known/openid-configuration`
