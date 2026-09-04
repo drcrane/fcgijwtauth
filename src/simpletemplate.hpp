@@ -6,140 +6,228 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <optional>
 
 class TemplateEngine
 {
 public:
 	using VariableMap = std::unordered_map<std::string, std::string>;
 
-	TemplateEngine() {
-	}
+	TemplateEngine() = default;
 
-	TemplateEngine(const std::string & filename) {
-		LoadFromFile(filename);
-	}
-
-	/// Load template from a file.
-	bool LoadFromFile(const std::string & filename)
+	explicit TemplateEngine(std::string templateText)
+		: m_template(std::move(templateText))
 	{
-		std::ifstream file(filename);
-		if (!file)
-			return false;
+	}
+
+	/**
+	 * Load a template from a file.
+	 *
+	 * Returns std::nullopt if the file could not be opened.
+	 *
+	 * Example:
+	 *
+	 *	 auto page = TemplateEngine::FromFile("page.html");
+	 *
+	 *	 if (!page)
+	 *	 {
+	 *		 // Handle error.
+	 *	 }
+	 */
+	static std::optional<TemplateEngine> FromFile(const std::string & filename) {
+		std::ifstream file(filename, std::ios::in | std::ios::binary);
+
+		if (!file) {
+			return std::nullopt;
+		}
 
 		std::ostringstream buffer;
 		buffer << file.rdbuf();
-		m_template = buffer.str();
-		m_dirty = true;
 
-		return true;
+		if (file.bad()) {
+			return std::nullopt;
+		}
+
+		return TemplateEngine(buffer.str());
 	}
 
-	/// Set the template directly.
-	void SetTemplate(const std::string & text)
-	{
-		m_template = text;
+	TemplateEngine & SetTemplate(std::string text) {
+		m_template = std::move(text);
+		return *this;
 	}
 
-	/// Get the current template.
-	const std::string& GetTemplate() const
-	{
+	const std::string & GetTemplate() const {
 		return m_template;
 	}
 
-	/// Set a replacement variable.
-	TemplateEngine & SetVariable(const std::string & name, const std::string & value)
-	{
-		m_variables[name] = value;
-		m_dirty = true;
+	TemplateEngine & SetVariable(std::string name, std::string value) {
+		m_variables[std::move(name)] = std::move(value);
 		return *this;
 	}
 
-	/// Set all variables at once.
-	TemplateEngine & SetVariables(const VariableMap & vars)
-	{
-		m_variables = vars;
-		m_dirty = true;
+	TemplateEngine & SetVariables(const VariableMap& variables) {
+		m_variables = variables;
 		return *this;
 	}
 
-	/// Access variables.
-	VariableMap& Variables()
-	{
+	TemplateEngine & SetVariables(VariableMap&& variables) {
+		m_variables = std::move(variables);
+		return *this;
+	}
+
+	VariableMap & Variables() {
 		return m_variables;
 	}
 
-	const VariableMap& Variables() const
-	{
+	const VariableMap & Variables() const {
 		return m_variables;
 	}
 
-	/// Remove a variable.
-	void RemoveVariable(const std::string& name)
-	{
+	TemplateEngine & RemoveVariable(const std::string & name) {
 		m_variables.erase(name);
-		m_dirty = true;
+		return *this;
 	}
 
-	/// Clear all variables.
-	void ClearVariables()
-	{
+	TemplateEngine & ClearVariables() {
 		m_variables.clear();
-		m_dirty = true;
+		return *this;
 	}
 
-	/// Render the template.
-	std::string & Render(bool leaveUnknown = true)
-	{
-		if (!m_dirty) {
-			return m_rendered;
-		}
+	/**
+	 * Render the template.
+	 *
+	 * Variables use the following syntax:
+	 *
+	 *	 <% VARIABLE_NAME %>
+	 *
+	 * Whitespace around the variable name is allowed:
+	 *
+	 *	 <%NAME%>
+	 *	 <% NAME %>
+	 *	 <%   NAME   %>
+	 *
+	 * If leaveUnknown is true, variables without a corresponding
+	 * value are left unchanged.
+	 *
+	 * If leaveUnknown is false, unknown variables are replaced
+	 * with an empty string.
+	 */
+	std::string Render(bool leaveUnknown = true) const {
+		std::string result;
 
-		static const std::regex pattern(
-			R"(<%\s*([A-Za-z_][A-Za-z0-9_]*)\s*%>)");
+		// This is just a reasonable initial allocation. The rendered
+		// output will often be around the same size as the template.
+		result.reserve(m_template.size());
 
-		std::string & result = m_rendered;
-		std::size_t lastPos = 0;
+		std::size_t position = 0;
 
-		auto begin = std::sregex_iterator(m_template.begin(), m_template.end(), pattern);
-		auto end = std::sregex_iterator();
+		while (position < m_template.size()) {
+			const std::size_t start = m_template.find("<%", position);
 
-		for (auto it = begin; it != end; ++it)
-		{
-			const auto& match = *it;
-
-			result.append(
-				m_template,
-				lastPos,
-				match.position() - lastPos);
-
-			std::string variable = match[1].str();
-
-			auto replacement = m_variables.find(variable);
-
-			if (replacement != m_variables.end())
-			{
-				result += replacement->second;
+			// No more template variables.
+			if (start == std::string::npos) {
+				result.append(m_template, position, std::string::npos);
+				break;
 			}
-			else if (leaveUnknown)
-			{
-				result += match.str();
+
+			// Copy everything before the variable.
+			result.append(m_template, position, start - position);
+
+			const std::size_t end = m_template.find("%>", start + 2);
+
+			// No closing delimiter. Treat the rest as ordinary text.
+			if (end == std::string::npos) {
+				result.append(m_template, start, std::string::npos);
+				break;
 			}
 
-			lastPos = match.position() + match.length();
+			// Extract the contents between <% and %>.
+			std::string_view variableName(m_template.data() + start + 2, end - (start + 2));
+
+			variableName = Trim(variableName);
+
+			if (IsValidVariableName(variableName)) {
+				const auto it = m_variables.find(std::string(variableName));
+
+				if (it != m_variables.end()) {
+					result += it->second;
+				} else if (leaveUnknown) {
+					// Preserve the original expression exactly.
+					result.append(m_template, start, (end + 2) - start);
+				}
+			} else {
+				// Not a valid variable expression. Preserve it.
+				result.append(m_template, start, (end + 2) - start);
+			}
+
+			position = end + 2;
 		}
-
-		result.append(m_template, lastPos);
-
-		m_rendered = result;
-		m_dirty = false;
 
 		return result;
 	}
 
 private:
+	static bool IsWhitespace(char c) {
+		return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+	}
+
+	static std::string_view Trim(std::string_view value) {
+		std::size_t begin = 0;
+		std::size_t end = value.size();
+
+		while (begin < end && IsWhitespace(value[begin])) {
+			++begin;
+		}
+
+		while (end > begin && IsWhitespace(value[end - 1])) {
+			--end;
+		}
+
+		return value.substr(begin, end - begin);
+	}
+
+	/**
+	 * Check whether a string is a valid variable name.
+	 *
+	 * Valid names are:
+	 *
+	 *	 VARIABLE
+	 *	 VARIABLE_NAME
+	 *	 _VARIABLE
+	 *	 VARIABLE123
+	 *
+	 * The first character must be A-Z, a-z or _.
+	 * Remaining characters may additionally contain 0-9.
+	 */
+	static bool IsValidVariableName(std::string_view name) {
+		if (name.empty()) {
+			return false;
+		}
+
+		const char first = name[0];
+
+		if (!((first >= 'A' && first <= 'Z') ||
+			  (first >= 'a' && first <= 'z') ||
+			  first == '_')) {
+			return false;
+		}
+
+		for (std::size_t i = 1; i < name.size(); ++i) {
+			const char c = name[i];
+
+			if (!((c >= 'A' && c <= 'Z') ||
+				  (c >= 'a' && c <= 'z') ||
+				  (c >= '0' && c <= '9') ||
+				  c == '_')) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+private:
 	std::string m_template;
-	std::string m_rendered;
 	VariableMap m_variables;
-	bool m_dirty;
 };
 

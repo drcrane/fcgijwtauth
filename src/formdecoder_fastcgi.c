@@ -7,7 +7,7 @@
 
 #define READ_BUFFER_SIZE 8192
 // This will write the posted data to a file, see below
-#define FORMDECODER_WRITEPOSTEDDATA
+//#define FORMDECODER_WRITEPOSTEDDATA
 
 struct formdecoder_context {
 	int type;
@@ -195,4 +195,12 @@ int formdecoder_decodefcgirequest(FCGX_Request * req, formdecoder_context ** fd_
 	return -1;
 }
 
+void formdecoder_dump_envp(FCGX_Request * request) {
+	char ** envp;
+	fprintf(stdout, "---- ENVP DUMP BEGIN ----\n");
+	for (envp = request->envp; *envp != NULL; envp++) {
+		fprintf(stdout, "%s\n", *envp);
+	}
+	fprintf(stdout, "---- ENVP DUMP END ----\n");
+}
 

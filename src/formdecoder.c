@@ -133,13 +133,13 @@ int formdecoder_setfield(formdecoder_context * ctx, char * key, size_t data_len,
  */
 int formdecoder_getfield(formdecoder_context * ctx, const char * key, size_t * data_len_ptr, char ** data_ptr) {
 	if (ctx->type == FORMDECODER_QUERYSTRING) {
-		char * field_value;
+		const char * field_value;
 		field_value = querystring_getbykey(ctx->qsctx, key);
 		if (field_value) {
 			if (data_len_ptr != NULL) {
 				*data_len_ptr = strlen(field_value);
 			}
-			*data_ptr = field_value;
+			*data_ptr = (char *)field_value;
 			return 0;
 		}
 	} else
@@ -157,7 +157,7 @@ int formdecoder_getfield(formdecoder_context * ctx, const char * key, size_t * d
 	return -1;
 }
 
-struct formdecoder_context_field * formdecoder_getfieldex(formdecoder_context * ctx, char * key, size_t idx) {
+struct formdecoder_context_field * formdecoder_getfieldex(formdecoder_context * ctx, char const * key, size_t idx) {
 	if (ctx->type == FORMDECODER_MULTIPART) {
 		size_t key_len;
 		struct formdecoder_context_field * field = NULL;

@@ -51,7 +51,7 @@ int formdecoder_getfield(formdecoder_context * ctx, const char * key, size_t * d
  * Get the pointer to the internal field representation
  * important for when the field is a file.
  */
-struct formdecoder_context_field * formdecoder_getfieldex(formdecoder_context * ctx, char * key, size_t idx);
+struct formdecoder_context_field * formdecoder_getfieldex(formdecoder_context * ctx, const char * key, size_t idx);
 
 /*
  * Callback to generate the stuff for the stuff.

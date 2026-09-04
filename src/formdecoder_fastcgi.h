@@ -19,6 +19,7 @@ extern "C" {
  * @arg ei_ctx set this to NULL
  */
 int formdecoder_decodefcgirequest(FCGX_Request * req, formdecoder_context ** ctx_ptr, size_t max_size, errorinfo_context ** ei_ctx);
+void formdecoder_dump_envp(FCGX_Request * request);
 
 #ifdef __cplusplus
 }

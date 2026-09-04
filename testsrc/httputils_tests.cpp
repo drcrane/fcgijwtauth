@@ -2,6 +2,7 @@
 #include "../src/HTTPUtils.hpp"
 
 int main() {
+	/*
 	std::string cookieHeader = "name1=value1; name2=value2; name3=value3";
 
 	std::map<std::string, std::string> cookies = parse_cookies(cookieHeader);
@@ -9,6 +10,7 @@ int main() {
 	for (const auto& cookie : cookies) {
 		std::cout << cookie.first << " = " << cookie.second << std::endl;
 	}
+	*/
 
 	char hdr[] = "user=alice; session=xyz123; theme=dark";
 	cookie_t *ck = HTTPUtils_parse_cookies(hdr);
@@ -32,7 +34,7 @@ int main() {
 	}
 	HTTPUtils_restore_cookies(hdr2, ck);
 	fprintf(stderr, "%s\n", hdr2);
-	free(ck);
+	HTTPUtils_dispose_cookies(ck);
 
 	return 0;
 }

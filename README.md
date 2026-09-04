@@ -60,6 +60,19 @@ The script `runauth.sh` should be sufficient, ensure it is executing in the
 project root directory and the `doas` tool is available and configured
 on the system.
 
+### Testing
+
+To send a request that uses a different hostname and communicates to the server
+via SNI (Server Name Indication, this is part of TLS) the desired hostname:
+
+    curl --resolve example.com:8443:127.0.0.1 https://example.com:8443/
+
+Just add the `Host:` header, don't faff with SNI:
+
+    curl -H 'Host: example.com' https://127.0.0.1/
+
+For that last example `--insecure` will probably be required.
+
 ### Accessing the `/private` URL
 
 The private URL should present itself as "401 Unauthorized" when there is no
