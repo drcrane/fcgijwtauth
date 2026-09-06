@@ -127,8 +127,9 @@ void HTTPUtils_restore_cookies(char * header, cookie_t * cookies) {
 		/* Compute end of this value */
 		char * end = value + strlen(value);
 		/* For all but last cookie, re‑insert ';' */
-		if (cookies[i + 1].name)
+		if (cookies[i + 1].name) {
 			*end = ';';
+		}
 	}
 }
 

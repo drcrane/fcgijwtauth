@@ -39,7 +39,7 @@
 	font-weight: 100 900;
 	font-style: normal;
 	font-display: swap;
-	src: url("Inter.var.latin.woff2") format("woff2-variations");
+	src: url("../res/fonts/inter/Inter.var.latin.woff2") format("woff2-variations");
 	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
@@ -48,7 +48,7 @@
 	font-weight: 100 900;
 	font-style: italic;
 	font-display: swap;
-	src: url("Inter.var.italic.latin.woff2") format("woff2-variations");
+	src: url("../res/fonts/inter/Inter.var.italic.latin.woff2") format("woff2-variations");
 	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
@@ -160,9 +160,10 @@ button svg {
 		Sign in to <% APPLICATION_NAME %> using your Microsoft account.
 	</p>
 
-	<form method="POST" action="." enctype="application/x-www-form-urlencoded" id="loginMicrosoft">
+	<form method="POST" action="login" enctype="application/x-www-form-urlencoded" id="loginMicrosoft">
 		<input type="hidden" name="provider" value="microsoft">
-		<input type="hidden" name="next_url" value="/welcome">
+		<input type="hidden" name="next_url" value="<% REDIRECT_URL %>">
+		<input type="hidden" name="redirect_to" value="<% REDIRECT_URL %>">
 
 		<button name="submitbtn" type="submit">
 			<svg width="17" height="17" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
