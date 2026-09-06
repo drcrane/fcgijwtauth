@@ -89,6 +89,9 @@ static void formdecoder_dispose_formfield(struct formdecoder_context_field * fie
 }
 
 void formdecoder_dispose(formdecoder_context * ctx) {
+	if (ctx == NULL) {
+		return;
+	}
 	if (ctx->buf) {
 		free(ctx->buf);
 	}
@@ -150,8 +153,11 @@ int formdecoder_getfield(formdecoder_context * ctx, const char * key, size_t * d
 		size_t field_len;
 		key_len = strlen(key);
 		res = simplemap_findfromkey(ctx->fields, key, key_len, 0, (void **)&field, &field_len);
-		*data_ptr = field->data;
-		*data_len_ptr = field->data_len;
+		if (res == 0) {
+			*data_ptr = field->data;
+			*data_len_ptr = field->data_len;
+		}
+		// simplemap_findfromkey will return -1 in the case that the key was not found
 		return res;
 	}
 	return -1;
