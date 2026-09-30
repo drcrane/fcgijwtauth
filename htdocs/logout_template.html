@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title><% APPLICATION_NAME %></title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="res/authenticate_style.css" />
+</head>
+
+<body>
+
+<div class="container">
+
+	<img id="logo-dark" src="<% APPLICATION_APPLICATION_LOGO_DARK %>" alt="Logo" width="120" height="110" />
+	<img id="logo-light" src="<% APPLICATION_APPLICATION_LOGO_LIGHT %>" alt="Logo" width="120" height="110" />
+
+	<h1><% WELCOME_TO_COMPANY_NAME %> Signout</h1>
+
+	<p class="subtitle">
+		Thank you for using <% APPLICATION_NAME %>, you are now signed out.<br/>
+		<strong><a href="/">Click here</a></strong> to sign in again.
+	</p>
+
+	<p class="subtitle">
+		You have signed out of <% APPLICATION_NAME %> but not your Microsoft Account. To sign out of you Microsoft Account also <strong><a href="<% APPLICATION_SERVICEPROVIDER_LOGOUT_URL %>">click here</a></strong>.
+	</p>
+
+	<p class="notice">
+		Please see our <strong><a href="<% PRIVACY_POLICY_URL %>">privacy notice</a></strong> for information about how your data is collected and used.
+	</p>
+
+</div>
+
+</body>
+</html>

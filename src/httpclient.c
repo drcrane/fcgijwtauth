@@ -5,6 +5,8 @@
 #include <string.h>
 #include "dynstring.h"
 
+//#define PRINT_DEBUGGING_RESPONSE
+
 struct ResponseBuffer {
 	unsigned char *data;
 	size_t length;
@@ -81,6 +83,14 @@ int http_post(const char * url, const char * content_type, const void * post_dat
 	rc = curl_easy_perform(curl);
 	dynstring_free(&content_type_dynstr);
 
+#ifdef PRINT_DEBUGGING_RESPONSE
+	if (buffer.length) {
+		fprintf(stderr, "---- %d ----\n", (int)buffer.length);
+		fprintf(stderr, "%.*s\n", (int)buffer.length, buffer.data);
+		fprintf(stderr, "----    ----\n");
+	}
+#endif // PRINT_DEBUGGING_RESPONSE
+
 	if (rc != CURLE_OK)
 	{
 		free(buffer.data);
@@ -96,13 +106,13 @@ int http_post(const char * url, const char * content_type, const void * post_dat
 		fprintf(stderr, "HTTP STATUS: %d\n", (int)http_status);
 
 		if (res_content_type != NULL && http_status == 200) {
-		response->content_type = strdup(res_content_type);
-		if (response->content_type == NULL)
-		{
-			free(buffer.data);
-			curl_easy_cleanup(curl);
-			return -1;
-		}
+			response->content_type = strdup(res_content_type);
+			if (response->content_type == NULL)
+			{
+				free(buffer.data);
+				curl_easy_cleanup(curl);
+				return -1;
+			}
 		}
 	}
 

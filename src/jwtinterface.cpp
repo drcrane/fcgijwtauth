@@ -4,7 +4,7 @@
 #include "HTTPUtils.hpp"
 #include <sstream>
 
-static int get_string(const std::map<std::string, picojson::value> & obj, const std::string & key, std::string & result) {
+int jwtinterface_get_string(const std::map<std::string, picojson::value> & obj, const std::string & key, std::string & result) {
 	auto it = obj.find(key);
 	if (it == obj.end() || !it->second.is<std::string>()) {
 		return -1;
@@ -77,28 +77,42 @@ static std::string prettyPrintObject(const picojson::object& obj)
 }
 
 std::unique_ptr<JWTUserContext> jwtinterface_getusercontext(std::string & jwt_str) {
-	std::unique_ptr<JWTUserContext> user_context = std::make_unique<JWTUserContext>();
-	jwt::decoded_jwt<jwt::traits::kazuho_picojson> jwt = jwt::decode(jwt_str);
-	std::map<std::string, picojson::value> payload_obj = jwt.get_payload_json();
-	int res;
-	res = get_string(payload_obj, "email", user_context->email_address);
-	if (res != 0) {
+	try {
+		if (jwt_str == "") {
+			return nullptr;
+		}
+		std::unique_ptr<JWTUserContext> user_context = std::make_unique<JWTUserContext>();
+		jwt::decoded_jwt<jwt::traits::kazuho_picojson> jwt = jwt::decode(jwt_str);
+		std::map<std::string, picojson::value> payload_obj = jwt.get_payload_json();
+		int res;
+		res = jwtinterface_get_string(payload_obj, "email", user_context->email_address);
+		if (res != 0) {
+			res = jwtinterface_get_string(payload_obj, "preferred_username", user_context->email_address);
+			if (res != 0) {
+				return nullptr;
+			}
+		}
+		res = jwtinterface_get_string(payload_obj, "name", user_context->friendly_name);
+		if (res != 0) {
+			return nullptr;
+		}
+		const picojson::value value = picojson::value(payload_obj);
+		user_context->payload_json_str = value.serialize();
+		user_context->payload_json_str_pretty = prettyPrintObject(payload_obj);
+		//const picojson::object& payload_obj = payload.get<picojson::object>();
+		//std::string payload_str = payload_obj.serialize();
+		//std::string payload_str = payload.serialize();
+		//user_context.get()->email_address = jwt.get_subject();
+		//user_context.get()->friendly_name = jwt.get_payload_json();
+		const picojson::value header_json = picojson::value(jwt.get_header_json());
+		user_context->header_json_str = header_json.serialize();
+		return user_context;
+	} catch (std::runtime_error & re) {
+		fprintf(stderr, "[Auth] jwtinterface_getusercontext runtime_error (%s)\n", jwt_str.c_str());
+		return nullptr;
+	} catch (std::invalid_argument & is) {
+		fprintf(stderr, "[Auth] jwtinterface_getusercontext invalid_argument (%s)\n", jwt_str.c_str());
 		return nullptr;
 	}
-	res = get_string(payload_obj, "name", user_context->friendly_name);
-	if (res != 0) {
-		return nullptr;
-	}
-	const picojson::value value = picojson::value(payload_obj);
-	user_context->payload_json_str = value.serialize();
-	user_context->payload_json_str_pretty = prettyPrintObject(payload_obj);
-	//const picojson::object& payload_obj = payload.get<picojson::object>();
-	//std::string payload_str = payload_obj.serialize();
-	//std::string payload_str = payload.serialize();
-	//user_context.get()->email_address = jwt.get_subject();
-	//user_context.get()->friendly_name = jwt.get_payload_json();
-	const picojson::value header_json = picojson::value(jwt.get_header_json());
-	user_context->header_json_str = header_json.serialize();
-	return user_context;
 }
 

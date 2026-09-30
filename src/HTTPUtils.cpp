@@ -3,6 +3,8 @@
 #include <vector>
 #include <algorithm>
 #include <cctype>
+#include <span>
+
 
 /*
 std::string trim(const std::string& str) {
@@ -111,7 +113,7 @@ char const * HTTPUtils_get_cookie(cookie_t * cookies, char const * name, size_t 
 	return NULL;
 }
 
-/* 
+/*
  * restore_cookies:
  *   header: original buffer mutated by parse_cookies
  *   cookies: array returned by parse_cookies
@@ -132,4 +134,65 @@ void HTTPUtils_restore_cookies(char * header, cookie_t * cookies) {
 		}
 	}
 }
+
+namespace HTTPUtils {
+
+/*
+ * This parser does not support empty segments, the following is fine:
+ * /client/8472/job//2026-09-20.0001
+ * but will be parsed as:
+ * [ "client", "8472", "job", "2026-09-20.0001" ]:
+ */
+std::optional<ParsedPath> parse_path(std::string_view raw) {
+	if (raw.empty()) {
+		return std::nullopt;
+	}
+	if (!raw.empty() && raw.back() == '/') {
+		raw.remove_suffix(1);
+	}
+
+	ParsedPath out;
+	// Decoding can only shrink, so raw.size() is a hard upper bound.
+	// Reserve once; no reallocation can occur during the loop.
+	// But MAY be copied!
+	out.storage.reserve(raw.size());
+
+	std::vector<ParsedPath::Range> & ranges = out.ranges;
+
+	std::size_t start = 0;
+	while (start <= raw.size()) {
+		const std::size_t slash = raw.find('/', start);
+		std::string_view seg = (slash == std::string_view::npos)
+			? raw.substr(start)
+			: raw.substr(start, slash - start);
+
+		if (!seg.empty()) {
+			const std::size_t offset = out.storage.size();
+			if (!detail::append_percent_decoded(seg, out.storage)) {
+				return std::nullopt;
+			}
+			ranges.push_back({offset, out.storage.size() - offset});
+		}
+
+		if (slash == std::string_view::npos) break;
+		start = slash + 1;
+	}
+
+	return out;
+}
+
+std::optional<ParsedPath> parse_path(const char * raw) {
+	if (raw == nullptr) return std::nullopt;
+	return parse_path(std::string_view{raw});
+}
+
+bool consume(const HTTPUtils::ParsedPath & parsed_path, std::size_t & idx, std::string_view literal) {
+	if (idx >= parsed_path.size() || parsed_path.get_idx(idx) != literal) {
+		return false;
+	}
+	idx = idx + 1;
+	return true;
+}
+
+} // namespace HTTPUtils
 
