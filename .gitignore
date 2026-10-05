@@ -1,5 +1,9 @@
+*
+!*.*
+!*/
 .cache/
 build/
 include/appspecific.h
 conf/
 appbin/
+subprojects/sitespecific/

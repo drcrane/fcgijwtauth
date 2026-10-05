@@ -3,6 +3,10 @@
 This application uses FastCGI to verify JWTs that are presented to the server
 via a cookie or in an `Authorization` header.
 
+### Dependencies
+
+    apk add fcgi-dev sqlite-dev curl-dev nginx spawn-fcgi
+
 ### Building
 
     mkdir build
@@ -39,6 +43,11 @@ Below is a brief configuration fragment from a `server` section in nginx:
 `/var/www/localhost/auth_htdocs` is a location where some resources
 can be kept (I am not sure how useful these are yet).
 
+Be careful with `client_max_body_size` it must be properly managed due to
+some understandable but unexpected behaviour... Qwen told me this:
+
+- [nginx ticket 1483](https://trac.nginx.org/nginx/ticket/1483)
+
 ### Using a 302 Redirect
 
     location / {
@@ -59,6 +68,22 @@ can be kept (I am not sure how useful these are yet).
 The script `runauth.sh` should be sufficient, ensure it is executing in the
 project root directory and the `doas` tool is available and configured
 on the system.
+
+### Running with `gdb`
+
+For some reason the process gets `SIGPIPE` fairly often, this seems to be
+intentional, to ignore these in `gdb` execute the following:
+
+    handle SIGPIPE nostop noprint
+    continue
+
+or
+
+    handle SIGPIPE ignore
+
+Further detail can be shown:
+
+    info signals SIGPIPE
 
 ### Testing
 
