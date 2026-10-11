@@ -5,7 +5,7 @@ if [ ! -d build ] ; then
 	mkdir build
 	cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -Bbuild .
 fi
-ninja -C build/
+ninja -C build/ authmain jwks_creator
 if [ ! -d conf ] ; then
 	mkdir conf
 fi
@@ -25,4 +25,5 @@ if [ ! -d "${FCGISOCKETDIR}" ] ; then
 doas mkdir "${FCGISOCKETDIR}"
 doas chown nginx:nginx "${FCGISOCKETDIR}"
 fi
-doas spawn-fcgi -U nginx -G nginx -s "${FCGISOCKETDIR}/${FCGIAPPNAME}.sock-1" -n ./appbin/${FCGIAPPNAME}
+#exec doas gdb --args spawn-fcgi -U nginx -G nginx -M 666 -s "${FCGISOCKETDIR}/${FCGIAPPNAME}.sock-1" -n ./appbin/${FCGIAPPNAME}
+exec doas spawn-fcgi -U nginx -G nginx -M 666 -s "${FCGISOCKETDIR}/${FCGIAPPNAME}.sock-1" -n ./appbin/${FCGIAPPNAME}

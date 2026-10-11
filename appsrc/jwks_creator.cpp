@@ -101,11 +101,11 @@ int main(int argc, char *argv[]) {
 		jwk["alg"] = picojson::value("ES256");
 		jwk["use"] = picojson::value("sig");
 		jwk["kid"] = picojson::value(argv[2]);
+		jwk["issuer"] = picojson::value(argv[1]);
 
 		picojson::array keys;
 		keys.push_back(picojson::value(jwk));
 		picojson::object jwks;
-		jwks["issuer"] = picojson::value(argv[1]);
 		jwks["keys"] = picojson::value(keys);
 		picojson::value jwks_val(jwks);
 		std::cout << jwks_val.serialize(true) << std::endl;

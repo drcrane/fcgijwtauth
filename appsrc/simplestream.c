@@ -83,7 +83,7 @@ void process_request(FCGX_Request *request) {
 	FCGX_FPrintF(request->out, "X-Accel-Buffering: no\r\n");
 	FCGX_FPrintF(request->out, "Cache-Control: no-cache\r\n");
 	FCGX_FPrintF(request->out, "\r\n");
-	
+
 	if (!callback || *callback == '\0') {
 		callback = "callback";
 	}
@@ -94,33 +94,31 @@ void process_request(FCGX_Request *request) {
 		FCGX_FFlush(request->out);
 		sleep(1);
 	}
-	
-	if (content) {
-		free(content);
-	}
+
+	free(content);
 }
 
 int main() {
 	FCGX_Init();
-	
+
 	int sock_fd = FCGX_OpenSocket(SOCKET_PATH, 64);
 	if (sock_fd < 0) {
 		perror("Could not create socket");
 		exit(EXIT_FAILURE);
 	}
-	
+
 	ensure_output_dir();
-	
+
 	FCGX_Request request;
 	FCGX_InitRequest(&request, sock_fd, 0);
-	
+
 	printf("FastCGI JSONP streaming server started on socket %s\n", SOCKET_PATH);
-	
+
 	while (FCGX_Accept_r(&request) >= 0) {
 		process_request(&request);
 		FCGX_Finish_r(&request);
 	}
-	
+
 	return 0;
 }
 

@@ -8,6 +8,7 @@
 #include <optional>
 #include "jwtinterface.hpp"
 #include "JWKSVerifierStore.hpp"
+#include "HTTPUtils.hpp" // cookie_t
 
 //extern std::map<std::string, JWKSVerifierStore> g_store_map{};
 
@@ -16,7 +17,13 @@ std::string time_point_to_string(const std::chrono::system_clock::time_point & t
 std::unique_ptr<JWTUserContext> verify_jwks_authentication_ex(JWKSStoreManager & store_man, char * cookies_str, char * auth_str);
 int verify_jwks_authentication_jwt(JWKSStoreManager & store_man, std::string & jwt_str);
 int verify_jwks_authentication(JWKSStoreManager & store_man, char * cookies_str, char * auth) ;
+std::unique_ptr<JWTUserContext> application_verify_jwt_authentication(JWKSStoreManager * store_man, char * cookies_str, char * auth_str);
+std::unique_ptr<JWTUserContext> application_verify_jwt_authentication(JWKSStoreManager * store_man, cookie_t * cookies);
+int application_check_authorisation(const char * user_id, int client_id);
+int application_database_init(const char * db_filename);
+void * application_get_db_conn();
 void application_template_init();
-std::string & application_login_page_get_content();
+std::string application_login_page_get_content();
+std::string application_logout_page_get_content();
 
 #endif // APPLICATION_HPP

@@ -13,6 +13,7 @@
 
 #include <fcgiapp.h>
 #include "appfileman.hpp"
+#include "application.hpp"
 
 int sock_fd;
 
@@ -226,7 +227,8 @@ int main(int argc, char *argv[])
 			(long)getegid());
 	}
 
-	fileman_init("data/filemanager.db");
+	application_database_init("data/filemanager.db");
+	fileman_init();
 
 	struct sigaction sa;
 	memset(&sa, 0, sizeof(sa));

@@ -44,8 +44,9 @@ int main(int argc, char *argv[]) {
 	std::cerr << "issuer: " << issuer << "\n";
 	std::cerr << "kid: " << kid << "\n";
 
-	JWKSVerifierStore store = JWKSVerifierStore("./conf/e42_uk.jwks.json");
-	json_traits::object_type jwk = store.get_jwk(kid);
+	JWKSStoreManager store = JWKSStoreManager();
+	auto jwks_json_string = store.fetch_jwks_json("./conf/e42_uk.jwks.json", nullptr);
+	json_traits::object_type jwk = store.get_jwk("./conf/e42_uk.jwks.json", jwks_json_string, kid);
 	const std::string & x = jwk.at("x").get<std::string>();
 	const std::string & y = jwk.at("y").get<std::string>();
 	const std::string & d = jwk.at("d").get<std::string>();
@@ -53,7 +54,7 @@ int main(int argc, char *argv[]) {
 	std::cerr << "x: " << x << "\n";
 	std::cerr << "y: " << y << "\n";
 	std::cerr << "d: " << d << "\n";
-	auto pem_priv_key = JWKSVerifierStore::create_pem_ec_key(x, y, d);
+	auto pem_priv_key = JWKSStoreManager::create_pem_ec_key(x, y, d);
 
 	std::cerr << pem_priv_key << "\n";
 

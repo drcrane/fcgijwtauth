@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
 	//if (store == nullptr) {
 	//	store->add_jwks_verifiers_from_string(g_store_man.fetch_jwks_json("./conf/microsoft.jwks.json"));
 	//}
+	application_database_init("data/filemanager.db");
 	application_template_init();
 
 	FCGX_Init();
@@ -57,6 +58,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "main(): malloc() error\n");
 		goto error;
 	}
+	fprintf(stderr, "main(): running.\r\n");
 	do {
 		FCGX_InitRequest(req, 0, 0);
 		rc = FCGX_Accept_r(req);
@@ -64,6 +66,7 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "main(): FCGX_Accept_r(req) %d\n", rc);
 			break;
 		}
+		//formdecoder_dump_envp(req);
 		rc = appauth_process_request(req);
 		if (rc != 0) {
 			fprintf(stderr, "main(): process_request(req) %d\n", rc);

@@ -11,9 +11,12 @@
 #include "jwt-cpp/traits/kazuho-picojson/traits.h"
 #include "../src/JWKSVerifierStore.hpp"
 #include "application.hpp"
+#include "database.h"
+#include "filesystem.h"
 #include "simpletemplate.hpp"
 #include "appspecific.h"
 #include "jwtinterface.hpp"
+#include "HTTPUtils.hpp"
 
 std::string set_to_json(const std::set<std::string> & string_set) {
 	picojson::array json_array;
@@ -38,15 +41,17 @@ int verify_jwks_authentication_jwt(JWKSStoreManager & store_man, std::string & j
 		std::string typ = jwt.get_type();
 		std::string algorithm = jwt.get_algorithm();
 		std::string key_id = jwt.get_key_id();
+		std::string issuer = jwt.get_issuer();
+		std::string aud = jwt.has_payload_claim("aud") ? set_to_json(jwt.get_audience()) : "<no aud>";
+		/*
 		fprintf(stderr, "typ: %s\n"
 				"alg: %s\n"
 				"kid: %s\n",
 				typ.c_str(), algorithm.c_str(), key_id.c_str());
-		std::string issuer = jwt.get_issuer();
-		std::string aud = jwt.has_payload_claim("aud") ? set_to_json(jwt.get_audience()) : "<no aud>";
 		fprintf(stderr, "iss: %s\n"
 				"aud: %s\n",
 				issuer.c_str(), aud.c_str());
+		*/
 		//g_store_map.count(issuer);
 		//std::map<std::string, JWKSVerifierStore>::iterator element = store_map.find("https://login.microsoft.com");
 		//std::map<std::string, JWKSVerifierStore>::iterator element = store_map.find(issuer);
@@ -63,18 +68,27 @@ int verify_jwks_authentication_jwt(JWKSStoreManager & store_man, std::string & j
 		//	return 2;
 		//}
 		bool verify_res = store_man.verify_jwt("microsoft", jwt_str);
-		fprintf(stderr, "Verification attempt result %s\n", verify_res ? "SUCCESS" : "FAILURE");
 		if (verify_res == false) {
+			fprintf(stderr, "Validation FAILURE\n");
 			return 2;
 		}
+		std::unique_ptr<JWTUserContext> user_ctx = jwtinterface_getusercontext(jwt_str);
+		if (!user_ctx) {
+			fprintf(stderr, "Attempted to get user context but failed\n");
+			return 3;
+		}
+		std::string email_address = user_ctx->email_address;
+
 		// Signature Valid but the token may be out of date
 		std::chrono::time_point issue_time_date = jwt.get_issued_at();
-		fprintf(stdout, "issued: %s\n", time_point_to_string(issue_time_date).c_str());
 		std::chrono::time_point valid_until_date = jwt.get_expires_at();
-		fprintf(stdout, "expires: %s\n", time_point_to_string(valid_until_date).c_str());
+		fprintf(stderr, "%s SUCCESS ", email_address.c_str());
+		fprintf(stdout, "issued: %s expires: %s\n", time_point_to_string(issue_time_date).c_str(), time_point_to_string(valid_until_date).c_str());
 		return 0;
 	} catch (std::runtime_error & re) {
-		fprintf(stderr, "[Auth] Something wrong with jwt (%s)\n", jwt_str.c_str());
+		fprintf(stderr, "[Auth] runtime_error Something wrong with jwt (%s)\n", jwt_str.c_str());
+	} catch (std::invalid_argument & ia) {
+		fprintf(stderr, "[Auth] invalid_argument Something wrong with jwt (%s)\n", jwt_str.c_str());
 	}
 	return 1;
 }
@@ -84,17 +98,95 @@ int verify_jwks_authentication(JWKSStoreManager & store_man, char * cookies_str,
 	return verify_jwks_authentication_jwt(store_man, jwt_str);
 }
 
-TemplateEngine application_login_page = TemplateEngine("htdocs/login_template.html");
+std::unique_ptr<JWTUserContext> application_verify_jwt_authentication(JWKSStoreManager * store_man, char * cookies_str, char * auth_str) {
+	std::string jwt_str = jwtinterface_get_token_from_cookie_or_authorization(cookies_str, auth_str);
+	int verified = 0;
+	if (store_man) {
+		verified = verify_jwks_authentication_jwt(*store_man, jwt_str);
+	}
+	std::unique_ptr<JWTUserContext> user_ctx = jwtinterface_getusercontext(jwt_str);
+	if (user_ctx) {
+		user_ctx->verified = verified;
+	}
+	return user_ctx;
+}
+
+std::unique_ptr<JWTUserContext> application_verify_jwt_authentication(JWKSStoreManager * store_man, cookie_t * cookies) {
+	char const * jwt_chr = HTTPUtils_get_cookie(cookies, "auth", 0);
+	std::string jwt_str = "";
+	int verified = 0;
+	if (jwt_chr) {
+		jwt_str = jwt_chr;
+	}
+	if (store_man) {
+		verified = verify_jwks_authentication_jwt(*store_man, jwt_str);
+	}
+	std::unique_ptr<JWTUserContext> user_ctx = jwtinterface_getusercontext(jwt_str);
+	if (user_ctx) {
+		user_ctx->verified = verified;
+	}
+	return user_ctx;
+}
+
+static std::unique_ptr<Database::SQLite3Connection> db_conn = std::unique_ptr<Database::SQLite3Connection>{};
+
+int application_database_init(char const * db_filename) {
+	bool initialise_database = false;
+	if (!filesystem_fileexists(db_filename)) {
+		initialise_database = true;
+	}
+	db_conn = std::make_unique<Database::SQLite3Connection>(db_filename);
+	if (initialise_database) {
+		Database::SQLite3Statement(db_conn.get(), "DROP TABLE IF EXISTS users;").Execute();
+		Database::SQLite3Statement(db_conn.get(), "CREATE TABLE IF NOT EXISTS users (username TEXT, groupid INT, PRIMARY KEY (username, groupid));").Execute();
+		Database::SQLite3Statement(db_conn.get(), "DROP TABLE IF EXISTS groups;").Execute();
+		Database::SQLite3Statement(db_conn.get(), "CREATE TABLE IF NOT EXISTS groups (groupid INT, groupname TEXT, PRIMARY KEY (groupid));").Execute();
+		INITDB_STATEMENTS
+	}
+	return 0;
+}
+
+void * application_get_db_conn() {
+	return (void *)db_conn.get();
+}
+
+int application_check_authorisation(const char * user_id, int client_id) {
+	if (client_id <= 0) {
+		return 0;
+	}
+	Database::SQLite3Statement stmt(db_conn.get(), "SELECT COUNT(*) FROM users WHERE username = ? AND (groupid = ? OR groupid = 1);");
+	stmt.BindAll(user_id, client_id);
+	int has_permission = 0;
+	for (Database::Row const & row : stmt) {
+		has_permission = row.GetInt(0);
+	}
+	fprintf(stderr, "Checking %s for %d result = %d\n", user_id, client_id, has_permission);
+	return has_permission;
+}
+
+TemplateEngine application_login_page = *TemplateEngine::FromFile("htdocs/login_template.html");
+TemplateEngine application_logout_page = *TemplateEngine::FromFile("htdocs/logout_template.html");
 
 void application_template_init() {
 	application_login_page.SetVariable("WELCOME_TO_COMPANY_NAME", APPLICATION_WELCOME_TO_COMPANY_NAME);
 	application_login_page.SetVariable("APPLICATION_NAME", APPLICATION_APPLICATION_NAME);
 	application_login_page.SetVariable("PRIVACY_POLICY_URL", APPLICATION_PRIVACY_POLICY_URL);
+	application_login_page.SetVariable("APPLICATION_APPLICATION_LOGO_LIGHT", APPLICATION_APPLICATION_LOGO_LIGHT);
+	application_login_page.SetVariable("APPLICATION_APPLICATION_LOGO_DARK", APPLICATION_APPLICATION_LOGO_DARK);
+	application_logout_page.SetVariable("WELCOME_TO_COMPANY_NAME", APPLICATION_WELCOME_TO_COMPANY_NAME);
+	application_logout_page.SetVariable("APPLICATION_NAME", APPLICATION_APPLICATION_NAME);
+	application_logout_page.SetVariable("PRIVACY_POLICY_URL", APPLICATION_PRIVACY_POLICY_URL);
+	application_logout_page.SetVariable("APPLICATION_APPLICATION_LOGO_LIGHT", APPLICATION_APPLICATION_LOGO_LIGHT);
+	application_logout_page.SetVariable("APPLICATION_APPLICATION_LOGO_DARK", APPLICATION_APPLICATION_LOGO_DARK);
 	return;
 }
 
-std::string & application_login_page_get_content() {
+std::string application_login_page_get_content() {
 	return application_login_page.Render();
+}
+
+std::string application_logout_page_get_content() {
+	return application_logout_page.Render();
 }
 
 /* ************************************************************************* */
