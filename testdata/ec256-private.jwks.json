@@ -1,5 +1,4 @@
 {
-	"issuer": "https://example.com",
 	"keys":[
 	{
 		"alg":"ES256",
@@ -9,6 +8,7 @@
 		"d": "7DZx2d5QfjX4s8xCBGeKutrnsk66qpY5bDo4maldyQk",
 		"kty": "EC",
 		"x": "a8qPVdjQJm76VvhFMDux9d017VWaSk9VW5x6-t8_RGU",
-		"y": "X4-JrJtipUQJVxqT784zNJgH5n15VtJWBtTxl_Bku3k"
+		"y": "X4-JrJtipUQJVxqT784zNJgH5n15VtJWBtTxl_Bku3k",
+		"issuer": "https://example.com"
 	}
 ]}
