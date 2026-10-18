@@ -18,9 +18,9 @@ int fileman_process_list_get_request(FCGX_Request * req, RequestContext & req_ct
 
 std::unique_ptr<Database::SQLite3Connection> db_conn = std::unique_ptr<Database::SQLite3Connection>{};
 
-int fileman_init(char const * database_filename) {
+int fileman_init() {
 	bool initialise_database = true;
-	//std::string database_filename = "data/filemanager.db";
+	std::string database_filename = "data/filemanager.db";
 	db_conn = std::make_unique<Database::SQLite3Connection>(database_filename);
 	if (initialise_database) {
 		Database::SQLite3Statement(db_conn.get(), "DROP TABLE IF EXISTS users;").Execute();

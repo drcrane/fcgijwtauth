@@ -20,7 +20,7 @@ struct RequestContext {
 	//std::unique_ptr<querystring_context, querystring_dispose> qs;
 };
 
-int fileman_init(char const * database_filename);
+int fileman_init();
 int fileman_process_request(FCGX_Request * req);
 
 #endif // APPFILEMAN_H
