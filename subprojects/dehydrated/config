@@ -1,0 +1,5 @@
+KEY_ALGO="secp384r1"
+CHALLENGETYPE="http-01"
+WELLKNOWN="../../htdocs/well-known/acme-challenge"
+DOMAINS_TXT="${BASEDIR}/domains.txt"
+ACCOUNTDIR="${BASEDIR}/accounts"

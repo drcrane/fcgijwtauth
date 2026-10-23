@@ -1,0 +1,6 @@
+accounts/
+certs/
+chains/
+!config
+domains.txt
+
