@@ -9,10 +9,12 @@ struct RequestContext {
 	char * script_name;
 	char * path_info;
 	char * document_root;
+	char * document_uri;
 	char * query_string;
 	char * request_id;
 	char * cookie;
 	char * authorisation;
+	char * remote_addr;
 	querystring_context * qs;
 	~RequestContext() {
 		querystring_dispose(qs);

@@ -1,0 +1,6 @@
+build/
+appsrc/
+src/
+testdata/
+testsrc/
+subprojects/

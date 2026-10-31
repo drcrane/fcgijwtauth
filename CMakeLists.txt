@@ -30,6 +30,7 @@ add_library(JWKSVerifier STATIC
 	src/jwtinterface.cpp
 	src/appfileman.cpp
 	src/appspecific.cpp
+	src/fileeditor.cpp
 )
 include_directories(src/ include/)
 #target_link_libraries(JWKSVerifier PRIVATE ${LIBFCGI_LIBRARIES} ${LIBCURL_LIBRARIES} ${LIBSQLITE3_LIBRARIES} jwt-cpp green)

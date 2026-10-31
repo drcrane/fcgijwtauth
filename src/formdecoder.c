@@ -275,7 +275,7 @@ int formdecoder_mimedecoder_callback(mimedecoder_context * ctx, int event, void 
 		break;
 	case MIMED_EVENT_ELEMENT_END:
 		if (fd_ctx->current_field == NULL) {
-			debug("NULL!");
+			debug("MIMED_EVENT_ELEMENT_END: current_field == NULL!");
 		} else {
 			if (fd_ctx->current_field->fd == -1) {
 				fd_ctx->current_field->data_len = dynstring_length(&fd_ctx->current_field_data);
